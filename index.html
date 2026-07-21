@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Peta interaktif jejaring topik, dosen pembimbing, fakultas, jurusan, dan koleksi skripsi ITB." />
+  <title>Peta Jejaring Skripsi ITB</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Beranda Peta Skripsi">
+      <span class="brand-mark" aria-hidden="true">∿</span>
+      <span><strong>Peta Skripsi</strong><small>Eksplorasi jejaring akademik ITB</small></span>
+    </a>
+    <nav class="top-nav" aria-label="Navigasi utama">
+      <a href="#jejaring">Jejaring</a>
+      <a href="#koleksi">Koleksi</a>
+      <button id="themeToggle" class="icon-button" type="button" aria-label="Ganti tema" title="Ganti tema">◐</button>
+    </nav>
+  </header>
+
+  <main id="top" class="page-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Knowledge map · 12 fakultas/sekolah · 51 jurusan</p>
+        <h1>Temukan hubungan antara <span>topik, pembimbing, dan skripsi.</span></h1>
+        <p class="hero-text">Jelajahi koleksi skripsi melalui peta jejaring, pencarian judul, abstrak, kata kunci, fakultas, jurusan, dan tingkat kekhususan topik.</p>
+      </div>
+      <div class="hero-search">
+        <label for="globalSearch">Cari judul, penulis, pembimbing, atau kata kunci</label>
+        <div class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input id="globalSearch" type="search" placeholder="Contoh: machine learning, pesisir, energi..." autocomplete="off" />
+          <kbd>/</kbd>
+        </div>
+        <p id="indexStatus" class="status-line">Menyiapkan indeks skripsi…</p>
+      </div>
+    </section>
+
+    <section class="stats-grid" aria-label="Ringkasan data">
+      <article class="stat-card"><span class="stat-icon">▤</span><div><strong id="statTheses">—</strong><small>Skripsi</small></div></article>
+      <article class="stat-card"><span class="stat-icon">⌂</span><div><strong id="statFaculties">—</strong><small>Fakultas/sekolah</small></div></article>
+      <article class="stat-card"><span class="stat-icon">◇</span><div><strong id="statPrograms">—</strong><small>Jurusan</small></div></article>
+      <article class="stat-card"><span class="stat-icon">◎</span><div><strong id="statAdvisors">—</strong><small>Pembimbing teridentifikasi</small></div></article>
+    </section>
+
+    <section class="control-panel" aria-labelledby="filterTitle">
+      <div class="section-heading compact-heading">
+        <div><p class="eyebrow">Filter eksplorasi</p><h2 id="filterTitle">Persempit peta dan koleksi</h2></div>
+        <button id="resetFilters" class="ghost-button" type="button">Reset semua</button>
+      </div>
+      <div class="filter-grid">
+        <label>Fakultas / sekolah
+          <select id="facultyFilter"><option value="">Semua fakultas/sekolah</option></select>
+        </label>
+        <label>Jurusan
+          <select id="programFilter"><option value="">Semua jurusan</option></select>
+        </label>
+        <label>Topik
+          <select id="topicFilter"><option value="">Semua topik</option></select>
+        </label>
+        <label>Tahun
+          <select id="yearFilter"><option value="">Semua tahun</option></select>
+        </label>
+      </div>
+      <div class="specificity-control">
+        <div class="specificity-copy">
+          <strong>Tingkat kekhususan topik</strong>
+          <span id="specificityDescription">Umum: rumpun besar lintas disiplin</span>
+        </div>
+        <div class="range-wrap">
+          <span>Umum</span>
+          <input id="specificityRange" type="range" min="1" max="3" step="1" value="1" aria-label="Tingkat kekhususan topik" />
+          <span>Spesifik</span>
+        </div>
+      </div>
+      <div id="activeFilters" class="active-filters" aria-live="polite"></div>
+    </section>
+
+    <section id="jejaring" class="network-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Peta jejaring interaktif</p>
+          <h2>Relasi fakultas, jurusan, pembimbing, dan topik</h2>
+          <p>Klik node untuk memfilter. Geser node, zoom, atau sorot relasinya. Sedikit lebih berguna daripada diagram yang hanya cantik di halaman metodologi.</p>
+        </div>
+        <div class="network-actions">
+          <label class="mini-control">Kepadatan
+            <input id="nodeLimit" type="range" min="50" max="220" step="10" value="120" />
+          </label>
+          <button id="resetZoom" class="ghost-button" type="button">Atur ulang tampilan</button>
+        </div>
+      </div>
+
+      <div class="network-layout">
+        <div class="network-card">
+          <div class="network-toolbar">
+            <div class="legend" aria-label="Legenda jejaring">
+              <span><i class="dot faculty-dot"></i>Fakultas</span>
+              <span><i class="dot program-dot"></i>Jurusan</span>
+              <span><i class="dot advisor-dot"></i>Pembimbing</span>
+              <span><i class="dot topic-dot"></i>Topik</span>
+            </div>
+            <div class="toggle-group">
+              <label><input id="showAdvisors" type="checkbox" checked /> Pembimbing</label>
+              <label><input id="showTopics" type="checkbox" checked /> Topik</label>
+            </div>
+          </div>
+          <div id="network" class="network-canvas" role="img" aria-label="Visualisasi jejaring skripsi">
+            <div class="network-loading">Menyusun jejaring…</div>
+          </div>
+        </div>
+
+        <aside class="insight-panel" aria-live="polite">
+          <p class="eyebrow">Node terpilih</p>
+          <div id="nodeInsight">
+            <h3>Klik salah satu node</h3>
+            <p>Informasi ringkas dan tindakan eksplorasi akan muncul di sini.</p>
+          </div>
+          <div class="insight-divider"></div>
+          <p class="eyebrow">Topik dominan</p>
+          <div id="topTopics" class="rank-list"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="koleksi" class="collection-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Koleksi skripsi</p>
+          <h2>Judul dan abstrak</h2>
+          <p id="resultSummary">Indeks judul sedang dimuat.</p>
+        </div>
+        <button id="exportCsv" class="primary-button" type="button" disabled>Ekspor hasil CSV</button>
+      </div>
+      <div id="thesisList" class="thesis-list">
+        <div class="empty-state"><strong>Memuat indeks pencarian…</strong><span>Data besar sedang disiapkan tanpa membuat browser Anda menyesali pilihan hidupnya.</span></div>
+      </div>
+      <button id="loadMore" class="load-more" type="button" hidden>Muat lebih banyak</button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Visualisasi eksploratif berbasis metadata koleksi skripsi. Bukan situs resmi Institut Teknologi Bandung.</p>
+    <a href="#top">Kembali ke atas ↑</a>
+  </footer>
+
+  <dialog id="detailModal" class="detail-modal">
+    <button id="closeModal" class="modal-close" type="button" aria-label="Tutup">×</button>
+    <div id="modalContent" class="modal-content"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/d3.v3.min.js"></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
