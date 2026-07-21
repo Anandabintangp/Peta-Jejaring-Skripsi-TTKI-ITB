@@ -10,13 +10,15 @@ Web statis interaktif untuk mengeksplorasi hubungan antara:
 
 ## Fitur utama
 
-- Peta jejaring berbasis D3.js.
+- Peta jejaring berbasis D3.js, termasuk relasi langsung pembimbing–topik.
 - Filter fakultas, jurusan, topik, dan tahun.
 - Slider tingkat kekhususan topik:
   - **Umum**: klasifikasi rumpun besar lintas disiplin.
   - **Menengah**: istilah hasil TF-IDF dari judul, kata kunci, dan abstrak.
   - **Spesifik**: kata kunci rinci dari metadata skripsi.
 - Pencarian judul, penulis, pembimbing, dan kata kunci.
+- Klik node untuk melihat lima judul skripsi terbaru serta topik/pembimbing yang sering terkait.
+- Koleksi menggunakan pagination 5 skripsi per halaman.
 - Modal abstrak lengkap dan tautan ke sumber Digilib.
 - Ekspor hasil filter ke CSV.
 - Tema terang/gelap dan tata letak responsif.
@@ -66,9 +68,19 @@ Folder input harus berisi subfolder fakultas seperti `FITB`, `FMIPA`, `FTI`, dan
 │   └── records/
 │       └── *.json
 └── scripts/
-    └── build_data.py
+    ├── build_data.py
+    └── fix_titles.py
 ```
 
 ## Catatan metodologis
 
 Pemisahan nama pembimbing dan klasifikasi topik dilakukan secara otomatis dari metadata. Variasi penulisan gelar/nama dan kualitas kata kunci sumber dapat menyebabkan sebagian node belum sepenuhnya terstandardisasi. Situs ini ditujukan untuk eksplorasi, bukan sebagai sumber bibliografi resmi.
+
+
+## Perbaikan judul tanpa spasi
+
+Sebagian metadata sumber memiliki judul yang kehilangan spasi. File data pada paket ini sudah diperbaiki secara otomatis menggunakan kosakata dari abstrak dan kata kunci. Untuk menjalankan ulang perbaikannya:
+
+```bash
+python scripts/fix_titles.py .
+```
