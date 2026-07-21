@@ -22,9 +22,11 @@ const state = {
   zoom: null,
   svg: null,
   selectedNode: null,
+  viewMode: "graph",
 };
 
 const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
 const fmt = new Intl.NumberFormat("id-ID");
 const levelMap = { 1: "broad", 2: "medium", 3: "specific" };
 const levelDescription = {
@@ -160,6 +162,22 @@ function bindEvents() {
   $("#showTopics").addEventListener("change", (e) => {
     state.showTopics = e.target.checked;
     renderNetwork();
+  });
+
+  $$(".view-switch-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (state.viewMode === btn.dataset.view) return;
+      state.viewMode = btn.dataset.view;
+      $$(".view-switch-btn").forEach((b) => {
+        b.classList.toggle("active", b === btn);
+        b.setAttribute("aria-selected", b === btn ? "true" : "false");
+      });
+      const isCloseness = state.viewMode === "closeness";
+      $("#closenessHint").hidden = !isCloseness;
+      $("#showAdvisors").closest("label").style.display = isCloseness ? "none" : "";
+      $("#showTopics").closest("label").style.display = isCloseness ? "none" : "";
+      renderNetwork();
+    });
   });
 
   $("#resetFilters").addEventListener("click", resetFilters);
@@ -623,6 +641,7 @@ function buildGraphData() {
 
 function renderNetwork() {
   if (!state.summary || typeof d3 === "undefined") return;
+  if (state.viewMode === "closeness") return renderTopicCloseness();
   const container = $("#network");
   container.innerHTML = "";
   const width = Math.max(container.clientWidth, 500);
@@ -680,6 +699,200 @@ function renderNetwork() {
         .attr("x2", (d) => d.target.x)
         .attr("y2", (d) => d.target.y);
       node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+    })
+    .start();
+
+  state.simulation = force;
+
+  const drag = force.drag()
+    .on("dragstart", function (d) {
+      if (d3.event.sourceEvent) d3.event.sourceEvent.stopPropagation();
+      d.fixed = true;
+    })
+    .on("dragend", function (d) { d.fixed = false; });
+  node.call(drag);
+
+  node.on("mouseenter", function (hovered) {
+    const connected = new Set([hovered.id]);
+    graph.links.forEach((l) => {
+      if (l.source.id === hovered.id) connected.add(l.target.id);
+      if (l.target.id === hovered.id) connected.add(l.source.id);
+    });
+    node.classed("dimmed", (d) => !connected.has(d.id)).classed("highlighted", (d) => d.id === hovered.id);
+    link.classed("dimmed", (d) => d.source.id !== hovered.id && d.target.id !== hovered.id);
+  }).on("mouseleave", function () {
+    node.classed("dimmed", false).classed("highlighted", false);
+    link.classed("dimmed", false);
+  });
+}
+
+function buildTopicClosenessGraph() {
+  const programs = selectedPrograms();
+  const programKeys = new Set(programs.map((p) => p.key));
+  const topicLimit = Math.max(12, Math.min(70, state.nodeLimit));
+  const topTopics = aggregateTopics(programs).slice(0, topicLimit);
+  const allowedTopics = new Set(topTopics.map((t) => t.name));
+  const nodes = topTopics.map((t) => ({
+    id: `t:${t.name}`,
+    type: "topic",
+    label: t.name,
+    fullLabel: t.name,
+    count: t.count,
+    value: t.name,
+  }));
+
+  const pairCounts = new Map();
+  if (state.index) {
+    state.index.forEach((item) => {
+      if (!programKeys.has(item.pkey)) return;
+      if (state.year && String(item.year || "") !== state.year) return;
+      const topics = [...new Set((item.topics[state.specificity] || []).filter((name) => allowedTopics.has(name)))];
+      for (let i = 0; i < topics.length; i++) {
+        for (let j = i + 1; j < topics.length; j++) {
+          const key = topics[i] < topics[j] ? `${topics[i]}\u0000${topics[j]}` : `${topics[j]}\u0000${topics[i]}`;
+          pairCounts.set(key, (pairCounts.get(key) || 0) + 1);
+        }
+      }
+    });
+  }
+
+  const links = [...pairCounts.entries()]
+    .map(([key, weight]) => {
+      const [a, b] = key.split("\u0000");
+      return { source: `t:${a}`, target: `t:${b}`, weight };
+    })
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 420);
+
+  return { nodes, links };
+}
+
+// Groups topics into clusters using union-find over their strongest co-occurrence
+// links, so we can draw an enclosing hull around topics that consistently show
+// up together in the same abstracts.
+function clusterTopics(nodes, links, minWeight = 2) {
+  const parent = new Map(nodes.map((n) => [n.id, n.id]));
+  const find = (id) => {
+    while (parent.get(id) !== id) {
+      parent.set(id, parent.get(parent.get(id)));
+      id = parent.get(id);
+    }
+    return id;
+  };
+  const union = (a, b) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  };
+  links.forEach((l) => {
+    if (l.weight >= minWeight) union(l.source.id, l.target.id);
+  });
+  const groups = new Map();
+  nodes.forEach((n) => {
+    const root = find(n.id);
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(n);
+  });
+  return [...groups.values()].filter((g) => g.length >= 3);
+}
+
+function padHullPoint(centroid, point, padding) {
+  const dx = point[0] - centroid[0];
+  const dy = point[1] - centroid[1];
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const scale = (dist + padding) / dist;
+  return [centroid[0] + dx * scale, centroid[1] + dy * scale];
+}
+
+function renderTopicCloseness() {
+  const container = $("#network");
+  container.innerHTML = "";
+  const width = Math.max(container.clientWidth, 500);
+  const height = window.innerWidth <= 720 ? 500 : 610;
+
+  if (!state.index) {
+    container.innerHTML = '<div class="network-loading">Menunggu indeks skripsi selesai dimuat…</div>';
+    return;
+  }
+
+  const graph = buildTopicClosenessGraph();
+  const nodeById = {};
+  graph.nodes.forEach((n) => { nodeById[n.id] = n; });
+  graph.links = graph.links
+    .map((l) => ({ ...l, source: nodeById[l.source], target: nodeById[l.target] }))
+    .filter((l) => l.source && l.target);
+
+  if (!graph.nodes.length) {
+    container.innerHTML = '<div class="network-loading">Tidak ada topik untuk filter ini.</div>';
+    return;
+  }
+
+  const svg = d3.select(container).append("svg").attr("viewBox", `0 0 ${width} ${height}`);
+  const root = svg.append("g");
+  const hullLayer = root.append("g").attr("class", "hull-layer");
+  const zoom = d3.behavior.zoom().scaleExtent([0.25, 4]).on("zoom", function () {
+    root.attr("transform", `translate(${d3.event.translate})scale(${d3.event.scale})`);
+  });
+  svg.call(zoom);
+  state.svg = svg;
+  state.zoom = zoom;
+  state.zoomRoot = root;
+
+  const maxWeight = d3.max(graph.links, (d) => d.weight) || 1;
+  const link = root.append("g").selectAll("line").data(graph.links).enter().append("line")
+    .attr("class", "link closeness-link")
+    .attr("stroke-width", (d) => 0.5 + Math.sqrt(d.weight / maxWeight) * 3);
+
+  const node = root.append("g").selectAll("g").data(graph.nodes).enter().append("g")
+    .attr("class", "node")
+    .on("click", function (d) { selectTopic(d.value); });
+
+  node.append("circle")
+    .attr("r", (d) => Math.max(6, Math.min(20, 5 + Math.log2(d.count + 1) * 1.6)))
+    .attr("fill", nodeColors.topic);
+
+  node.append("text")
+    .attr("x", 14)
+    .attr("y", 3)
+    .text((d) => truncate(d.label, 30));
+
+  node.append("title").text((d) => `${d.fullLabel}\n${fmt.format(d.count)} skripsi`);
+
+  const clusters = clusterTopics(graph.nodes, graph.links);
+  const hullColors = ["var(--faculty)", "var(--program)", "var(--advisor)", "var(--topic)", "var(--accent)"];
+  const lineGen = d3.svg.line().interpolate("cardinal-closed").tension(0.7);
+  const hullPaths = clusters.map((group, i) => ({
+    group,
+    path: hullLayer.append("path")
+      .attr("class", "topic-hull")
+      .style("fill", hullColors[i % hullColors.length])
+      .style("stroke", hullColors[i % hullColors.length]),
+  }));
+
+  const force = d3.layout.force()
+    .nodes(graph.nodes)
+    .links(graph.links)
+    .size([width, height])
+    .linkDistance((d) => Math.max(36, 130 - Math.sqrt(d.weight) * 22))
+    .linkStrength((d) => Math.min(0.85, 0.15 + d.weight * 0.05))
+    .charge(-190)
+    .gravity(0.09)
+    .friction(0.88)
+    .on("tick", () => {
+      link
+        .attr("x1", (d) => d.source.x)
+        .attr("y1", (d) => d.source.y)
+        .attr("x2", (d) => d.target.x)
+        .attr("y2", (d) => d.target.y);
+      node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+      hullPaths.forEach(({ group, path }) => {
+        if (group.length < 3) { path.attr("d", ""); return; }
+        const centroid = [d3.mean(group, (d) => d.x), d3.mean(group, (d) => d.y)];
+        const hullPoints = d3.geom.hull(group.map((d) => [d.x, d.y]));
+        if (!hullPoints.length) { path.attr("d", ""); return; }
+        const padded = hullPoints.map((p) => padHullPoint(centroid, p, 22));
+        path.attr("d", lineGen(padded));
+      });
     })
     .start();
 
