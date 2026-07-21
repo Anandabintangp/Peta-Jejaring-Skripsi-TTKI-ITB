@@ -13,8 +13,8 @@
 
   <header class="site-header">
     <a class="brand" href="#top" aria-label="Beranda Peta Skripsi">
-      <span class="brand-mark" aria-hidden="true">∿</span>
-      <span><strong>Peta Skripsi</strong><small>Eksplorasi jejaring akademik ITB</small></span>
+      <img class="brand-mark" src="assets/logo-itb.png" alt="Logo ITB" />
+      <span><strong>Peta Skripsi</strong><small>Eksplorasi peta jejaring skripsi ITB</small></span>
     </a>
     <nav class="top-nav" aria-label="Navigasi utama">
       <a href="#jejaring">Jejaring</a>
@@ -26,18 +26,8 @@
   <main id="top" class="page-shell">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Knowledge map · 12 fakultas/sekolah · 51 jurusan</p>
-        <h1>Temukan hubungan antara <span>topik, pembimbing, dan skripsi.</span></h1>
-        <p class="hero-text">Jelajahi koleksi skripsi melalui peta jejaring, pencarian judul, abstrak, kata kunci, fakultas, jurusan, dan tingkat kekhususan topik.</p>
-      </div>
-      <div class="hero-search">
-        <label for="globalSearch">Cari judul, penulis, pembimbing, atau kata kunci</label>
-        <div class="search-box">
-          <span aria-hidden="true">⌕</span>
-          <input id="globalSearch" type="search" placeholder="Contoh: machine learning, pesisir, energi..." autocomplete="off" />
-          <kbd>/</kbd>
-        </div>
-        <p id="indexStatus" class="status-line">Menyiapkan indeks skripsi…</p>
+        <h1>Peta Jejaring Skripsi</h1>
+        <p class="hero-text">Diolah oleh Ananda Bintang Purwaramdhona, M.Hum.</p>
       </div>
     </section>
 
@@ -89,6 +79,10 @@
           <p>Klik node untuk melihat judul skripsi, pembimbing, dan topik yang paling sering terkait. Node tetap dapat digeser dan diperbesar.</p>
         </div>
         <div class="network-actions">
+          <div class="view-switch" role="tablist" aria-label="Mode tampilan jejaring">
+            <button type="button" class="view-switch-btn active" data-view="graph" role="tab" aria-selected="true">Peta jejaring</button>
+            <button type="button" class="view-switch-btn" data-view="closeness" role="tab" aria-selected="false">Kedekatan topik</button>
+          </div>
           <label class="mini-control">Kepadatan
             <input id="nodeLimit" type="range" min="50" max="220" step="10" value="120" />
           </label>
@@ -110,6 +104,7 @@
               <label><input id="showTopics" type="checkbox" checked /> Topik</label>
             </div>
           </div>
+          <p id="closenessHint" class="status-line closeness-hint" hidden>Wilayah yang melingkupi beberapa topik menandakan topik-topik tersebut sering muncul bersama pada skripsi yang sama. Garis lebih tebal = lebih sering muncul bersama.</p>
           <div id="network" class="network-canvas" role="img" aria-label="Visualisasi jejaring skripsi">
             <div class="network-loading">Menyusun jejaring…</div>
           </div>
@@ -128,6 +123,16 @@
       </div>
     </section>
 
+    <div class="hero-search collection-search">
+      <label for="globalSearch">Cari judul, penulis, pembimbing, atau kata kunci</label>
+      <div class="search-box">
+        <span aria-hidden="true">⌕</span>
+        <input id="globalSearch" type="search" placeholder="Contoh: machine learning, pesisir, energi..." autocomplete="off" />
+        <kbd>/</kbd>
+      </div>
+      <p id="indexStatus" class="status-line">Menyiapkan indeks skripsi…</p>
+    </div>
+
     <section id="koleksi" class="collection-section">
       <div class="section-heading">
         <div>
@@ -145,7 +150,10 @@
   </main>
 
   <footer class="site-footer">
-    <p>Visualisasi eksploratif berbasis metadata koleksi skripsi. Bukan situs resmi Institut Teknologi Bandung.</p>
+    <div class="footer-credits">
+      <p>Visualisasi eksploratif berbasis metadata koleksi skripsi dari Digilib Institut Teknologi Bandung.</p>
+      <p class="footer-team"><strong>Tim pengampu Mata Kuliah Tata Tulis Karya Ilmiah (TTKI) ITB:</strong> Ananda Bintang Purwaramdhona, M.Hum. · Dr. Asep Wawan Djatnika, M.Hum. · Dr. Tri Sulistyaningtyas, M.Hum. · Linda Handayani Sukaemi, M.Hum. · Winni Aryuni, M.Pd. · Yani Suryani, M.Hum. · Sira Kamila Dewanti Amalia, M.Hum.</p>
+    </div>
     <a href="#top">Kembali ke atas ↑</a>
   </footer>
 
